@@ -1,0 +1,24 @@
+/*
+ * AgriNexus Firestore baseline rules
+ *
+ * MVP architecture:
+ * Browser -> Firebase Auth -> Express API -> Firebase Admin SDK -> Firestore
+ *
+ * Firebase Admin SDK bypasses Firestore Security Rules.
+ * These rules therefore deny direct browser access by default so the
+ * Express authorization layer remains the single application data gateway.
+ *
+ * If direct client Firestore access is intentionally enabled later,
+ * replace these rules with least-privilege ownership rules and test them
+ * with the Firebase Emulator Suite.
+ */
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

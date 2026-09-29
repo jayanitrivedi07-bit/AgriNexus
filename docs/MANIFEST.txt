@@ -1,0 +1,24 @@
+AgriNexus build documentation package
+
+Core documents:
+- PRD.md
+- SRS.md
+- ARCHITECTURE.md
+- API.md
+- DATABASE.md
+- AI.md
+- DATA_SOURCES.md
+- SECURITY.md
+- AGENTS.md
+- IMPLEMENTATION_PLAN.md
+- README.md
+
+Firebase additions:
+- FIREBASE_SETUP.md
+- firestore.rules
+
+Stack decision:
+- Firebase Authentication for identity
+- Cloud Firestore for application data
+- Firebase Admin SDK for backend access
+- Optional Firebase Storage for uploaded crop/disease images
