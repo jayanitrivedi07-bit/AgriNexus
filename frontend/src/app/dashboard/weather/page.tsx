@@ -2,30 +2,68 @@
 
 import React, { useState, useEffect } from 'react';
 import { Cloud, CloudRain, Sun, Wind, Droplets } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function WeatherPage() {
+  const { token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [forecast, setForecast] = useState<any[]>([]);
 
   useEffect(() => {
-    // Simulate fetching weather from backend
-    setTimeout(() => {
-      const today = new Date();
-      const mockForecast = Array.from({ length: 7 }).map((_, i) => {
-        const d = new Date(today);
-        d.setDate(d.getDate() + i);
-        return {
-          date: d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
-          temp: Math.round(25 + Math.random() * 8),
-          precipitation: Math.round(Math.random() * 20),
-          humidity: Math.round(50 + Math.random() * 40),
-          icon: Math.random() > 0.6 ? <CloudRain className="w-8 h-8 text-sky" /> : (Math.random() > 0.5 ? <Cloud className="w-8 h-8 text-gray-400" /> : <Sun className="w-8 h-8 text-amber-500" />)
-        };
-      });
-      setForecast(mockForecast);
-      setLoading(false);
-    }, 1000);
-  }, []);
+    if (!token) return;
+    
+    const fetchWeather = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        
+        // First get the farm ID
+        const farmRes = await fetch(`${apiUrl}/api/v1/farms`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const farmData = await farmRes.json();
+        
+        if (!farmData.success || farmData.data.length === 0) {
+          setLoading(false);
+          return;
+        }
+        
+        const farmId = farmData.data[0].id;
+        
+        // Then fetch weather for this farm
+        const weatherRes = await fetch(`${apiUrl}/api/v1/farms/${farmId}/weather?days=7`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        const weatherData = await weatherRes.json();
+        
+        if (weatherData.success) {
+          // Transform backend format to UI format
+          const formatted = weatherData.data.map((day: any) => {
+            const dateObj = new Date(day.forecastDate);
+            return {
+              date: dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+              temp: Math.round(day.temperature),
+              precipitation: day.precipitationMm,
+              humidity: Math.round(day.humidity),
+              // basic logic for icon
+              icon: day.precipitationProbability > 50 
+                ? <CloudRain className="w-8 h-8 text-sky" /> 
+                : (day.precipitationProbability > 20 
+                    ? <Cloud className="w-8 h-8 text-gray-400" /> 
+                    : <Sun className="w-8 h-8 text-amber-500" />)
+            };
+          });
+          setForecast(formatted);
+        }
+      } catch (error) {
+        console.error("Failed to fetch weather", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchWeather();
+  }, [token]);
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
@@ -45,40 +83,43 @@ export default function WeatherPage() {
           <div>
             <h3 className="text-lg font-medium opacity-90 mb-1">Current Conditions</h3>
             <div className="flex items-end gap-4">
-              <span className="text-6xl font-display font-bold">28°C</span>
+              <span className="text-6xl font-display font-bold">
+                {forecast.length > 0 ? forecast[0].temp : '--'}°C
+              </span>
               <span className="text-xl opacity-90 pb-1 flex items-center gap-2">
-                <Sun className="w-6 h-6" /> Partly Cloudy
+                {forecast.length > 0 ? forecast[0].icon : <Sun className="w-6 h-6" />} 
+                {forecast.length > 0 && forecast[0].precipitation > 0 ? 'Rain Expected' : 'Partly Cloudy'}
               </span>
             </div>
-            <p className="mt-4 opacity-80 text-sm">Coordinates: 45.42° N, 10.98° E (Farm Center)</p>
+            <p className="mt-4 opacity-80 text-sm">Farm location based analysis</p>
           </div>
           <div className="grid grid-cols-2 gap-x-8 gap-y-4 mt-6 md:mt-0">
             <div className="flex items-center gap-3">
               <Droplets className="w-5 h-5 opacity-80" />
               <div>
                 <p className="text-xs opacity-70">Humidity</p>
-                <p className="font-semibold">64%</p>
+                <p className="font-semibold">{forecast.length > 0 ? forecast[0].humidity : '--'}%</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <CloudRain className="w-5 h-5 opacity-80" />
               <div>
                 <p className="text-xs opacity-70">Precipitation</p>
-                <p className="font-semibold">0 mm</p>
+                <p className="font-semibold">{forecast.length > 0 ? forecast[0].precipitation : '--'} mm</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <Wind className="w-5 h-5 opacity-80" />
               <div>
                 <p className="text-xs opacity-70">Wind</p>
-                <p className="font-semibold">12 km/h</p>
+                <p className="font-semibold">-- km/h</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <Sun className="w-5 h-5 opacity-80" />
               <div>
                 <p className="text-xs opacity-70">UV Index</p>
-                <p className="font-semibold">High (7)</p>
+                <p className="font-semibold">--</p>
               </div>
             </div>
           </div>
@@ -90,6 +131,10 @@ export default function WeatherPage() {
       {loading ? (
         <div className="h-40 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-forest"></div>
+        </div>
+      ) : forecast.length === 0 ? (
+        <div className="h-40 flex items-center justify-center text-text-secondary">
+          <p>Please add a farm to see the weather forecast.</p>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">

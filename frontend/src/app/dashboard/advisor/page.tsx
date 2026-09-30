@@ -1,36 +1,56 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Brain, Search, Loader2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function AdvisorPage() {
+  const { token } = useAuth();
   const [loading, setLoading] = useState(false);
   const [advisory, setAdvisory] = useState<any>(null);
-  
-  // Hardcoded for demo purposes
-  const farmId = "mock-farm-id";
+  const [farmId, setFarmId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+    const fetchFarms = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        const res = await fetch(`${apiUrl}/api/v1/farms`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success && data.data.length > 0) {
+          setFarmId(data.data[0].id);
+        }
+      } catch (error) {
+        console.error("Failed to fetch farms", error);
+      }
+    };
+    fetchFarms();
+  }, [token]);
 
   const handleGenerate = async () => {
+    if (!farmId) {
+      alert("Please create a farm first to generate an advisory.");
+      return;
+    }
+    
     setLoading(true);
     try {
-      // In a real app we'd fetch with auth token
-      // const res = await fetch(\`http://localhost:5000/api/v1/farms/\${farmId}/advisories/generate\`, { method: 'POST' });
-      // const data = await res.json();
-      // setAdvisory(data.data);
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const res = await fetch(`${apiUrl}/api/v1/farms/${farmId}/advisories/generate`, { 
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
       
-      // Simulate API call for now
-      setTimeout(() => {
-        setAdvisory({
-          title: "Irrigation Optimization",
-          priority: "medium",
-          recommendation: "Hold off on irrigation for the next 48 hours.",
-          reason: "High probability of 12mm rainfall expected tomorrow, and current soil moisture is adequate.",
-          evidence: ["Rainfall probability: 85%", "Current soil moisture: 64%"],
-          actions: ["Monitor field post-rainfall", "Check drainage in Zone C"],
-          confidence: "high"
-        });
-        setLoading(false);
-      }, 1500);
+      if (data.success) {
+        setAdvisory(data.data);
+      } else {
+        console.error("Error generating advisory:", data.error);
+        alert(data.error?.message || "Failed to generate advisory");
+      }
+      setLoading(false);
     } catch (error) {
       console.error(error);
       setLoading(false);
@@ -93,7 +113,7 @@ export default function AdvisorPage() {
             <div>
               <h4 className="font-semibold text-text-primary mb-3 text-sm uppercase tracking-wider text-gray-500">Evidence</h4>
               <ul className="space-y-2">
-                {advisory.evidence.map((ev: string, idx: number) => (
+                {advisory.evidence?.map((ev: string, idx: number) => (
                   <li key={idx} className="flex items-start gap-2 text-sm text-text-secondary">
                     <span className="text-ai mt-0.5">•</span> {ev}
                   </li>
@@ -103,7 +123,7 @@ export default function AdvisorPage() {
             <div>
               <h4 className="font-semibold text-text-primary mb-3 text-sm uppercase tracking-wider text-gray-500">Suggested Actions</h4>
               <ul className="space-y-2">
-                {advisory.actions.map((act: string, idx: number) => (
+                {advisory.actions?.map((act: string, idx: number) => (
                   <li key={idx} className="flex items-start gap-2 text-sm text-text-secondary">
                     <span className="text-agri-green mt-0.5">✓</span> {act}
                   </li>

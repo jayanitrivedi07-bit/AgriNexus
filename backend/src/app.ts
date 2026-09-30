@@ -37,6 +37,8 @@ import diseaseRoutes from './routes/diseaseRoutes';
 import authRoutes from './routes/authRoutes';
 import fieldRoutes from './routes/fieldRoutes';
 import cooperationRoutes from './routes/cooperationRoutes';
+import cropRoutes from './routes/cropRoutes';
+import soilRoutes from './routes/soilRoutes';
 
 // Setup API routes here...
 app.use('/api/v1/auth', authRoutes);
@@ -46,6 +48,8 @@ app.use('/api/v1/farms/:farmId/weather', weatherRoutes);
 app.use('/api/v1/farms/:farmId/advisories', advisoryRoutes);
 app.use('/api/v1/disease', diseaseRoutes);
 app.use('/api/v1/cooperation', cooperationRoutes);
+app.use('/api/v1/crops', cropRoutes);
+app.use('/api/v1/soil', soilRoutes);
 
 app.use(errorHandler);
 

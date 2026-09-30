@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Activity, Droplets, Sprout, AlertTriangle } from 'lucide-react';
+import Link from 'next/link';
 
 export default function DashboardHome() {
   return (
@@ -59,9 +60,9 @@ export default function DashboardHome() {
               <li>Soil moisture decreased</li>
               <li>Rainfall below expected</li>
             </ul>
-            <button className="bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors">
+            <Link href="/dashboard/farm" className="inline-block bg-red-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors">
               Inspect Field
-            </button>
+            </Link>
           </div>
         </div>
 
@@ -74,9 +75,9 @@ export default function DashboardHome() {
           <div className="bg-amber-50/50 rounded-xl p-5 border border-amber-100">
             <h4 className="font-semibold text-amber-900 mb-2">Disease pressure increasing</h4>
             <p className="text-sm text-amber-800 mb-4">Humidity + rainfall pattern in the last 48 hours.</p>
-            <button className="bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-amber-700 transition-colors">
+            <Link href="/dashboard/disease" className="inline-block bg-amber-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-amber-700 transition-colors">
               Run Diagnosis
-            </button>
+            </Link>
           </div>
         </div>
       </div>

@@ -1,9 +1,11 @@
 "use client";
 
 import React, { useState } from 'react';
-import { ScanLine, Upload, AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { ScanLine, Upload, AlertCircle, CheckCircle2, Loader2, Cloud } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 export default function DiseasePage() {
+  const { token } = useAuth();
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [crop, setCrop] = useState('soybean');
@@ -24,18 +26,29 @@ export default function DiseasePage() {
     setLoading(true);
     
     try {
-      // Simulate API call for now
-      setTimeout(() => {
-        setResult({
-          potentialCondition: "Leaf Blight",
-          confidence: 0.92,
-          visualIndicators: ["Yellowing of leaf edges", "Small brown necrotic spots"],
-          environmentalContext: ["Recent high humidity increases risk", "Temperature in optimal range for fungal growth"],
-          recommendedAction: "Isolate affected plants if possible, ensure proper drainage, and consider applying appropriate fungicide. Consult local agronomist.",
-          limitations: ["Image-based assessment is not a guaranteed diagnosis."]
-        });
-        setLoading(false);
-      }, 2000);
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('crop', crop);
+      // Optional: farmId if we had it selected, but it defaults to null in backend if missing.
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const res = await fetch(`${apiUrl}/api/v1/disease/analyze`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData,
+      });
+
+      const data = await res.json();
+      
+      if (data.success) {
+        setResult(data.data);
+      } else {
+        console.error("Error analyzing disease:", data.error);
+        alert(data.error?.message || "Failed to analyze disease");
+      }
+      setLoading(false);
     } catch (error) {
       console.error(error);
       setLoading(false);
@@ -136,7 +149,7 @@ export default function DiseasePage() {
                   <CheckCircle2 className="w-4 h-4 text-forest" /> Visual Indicators
                 </h4>
                 <ul className="list-disc list-inside text-sm text-text-secondary space-y-1">
-                  {result.visualIndicators.map((ind: string, i: number) => <li key={i}>{ind}</li>)}
+                  {result.visualIndicators?.map((ind: string, i: number) => <li key={i}>{ind}</li>)}
                 </ul>
               </div>
 
@@ -145,7 +158,7 @@ export default function DiseasePage() {
                   <Cloud className="w-4 h-4 text-sky" /> Environmental Context
                 </h4>
                 <ul className="list-disc list-inside text-sm text-text-secondary space-y-1">
-                  {result.environmentalContext.map((ctx: string, i: number) => <li key={i}>{ctx}</li>)}
+                  {result.environmentalContext?.map((ctx: string, i: number) => <li key={i}>{ctx}</li>)}
                 </ul>
               </div>
 
@@ -157,7 +170,7 @@ export default function DiseasePage() {
               <div className="bg-red-50/50 rounded-xl p-4 border border-red-100 flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
                 <p className="text-xs text-red-800 leading-relaxed">
-                  {result.limitations.join(" ")}
+                  {result.limitations?.join(" ")}
                 </p>
               </div>
             </div>
@@ -167,5 +180,3 @@ export default function DiseasePage() {
     </div>
   );
 }
-// Using Cloud icon since it's used in the text
-import { Cloud } from 'lucide-react';
